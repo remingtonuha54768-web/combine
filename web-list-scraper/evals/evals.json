@@ -1,0 +1,221 @@
+{
+  "skill_name": "web-list-scraper",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "为我爬取example.com。先帮我估算这个站会抓到多少条文章链接和最大页数，然后直接把所有文章列表里的文章链接导出成 json 文件。",
+      "expected_output": "The skill should analyze the site in a two-phase workflow, identify a plausible article-list region and pagination range internally, use the estimated link count summary without pausing for confirmation, and proceed to export automatically.",
+      "files": [],
+      "expectations": [
+        "The response identifies this as an article-list scraping task and uses the skill workflow.",
+        "The first phase determines an internal execution summary before exporting links.",
+        "The execution summary includes the site domain, pagination style, maximum page count, and estimated link count or uncertainty note.",
+        "The workflow proceeds automatically without asking the user to confirm before extraction.",
+        "The workflow includes a post-crawl validation step that compares exported link count against actual article-list count."
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "帮我分析 https://news.example.com/list/1.html 这个列表页。我只要文章列表本身的链接，不要导航、分页、页脚和推荐位。先判断预计会抓到多少条链接和最大页数，然后直接继续。",
+      "expected_output": "The skill should analyze the provided list page directly, emphasize that only article-list-region links are in scope, exclude unrelated link regions, and continue automatically after determining the estimated link count summary.",
+      "files": [],
+      "expectations": [
+        "The response treats the provided URL as the analysis entry point instead of requiring a homepage first.",
+        "The response preserves the constraint that only article-list links are allowed and unrelated modules must be excluded.",
+        "The first-phase output includes an estimated link count and a maximum page count estimate or a clear uncertainty statement.",
+        "The response prefers real next-page traversal over static page-count guessing when a usable next or 下一页 control exists.",
+        "The response does not wait for confirmation before any bulk crawling or JSON export.",
+        "The workflow still requires post-crawl count validation before completion."
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "请为我爬取 example.com 的资讯列表。把所有文章链接输出到一个以域名加时间命名的 json 文件里，每条记录都要有 url、isOutLink、isFileLink、isWechatLink。如果有 pdf 或 doc 下载链接，也要按文件链接标记出来；如果是微信公众号链接，也要单独标记出来。",
+      "expected_output": "The skill should explain or imply the required JSON filename pattern and record schema, preserve the title and classification requirements for external links, file links, and WeChat article links, and execute without a user-confirmation pause once the crawl scope is internally determined.",
+      "files": [],
+      "expectations": [
+        "The workflow uses internal analysis followed by automatic export rather than a confirm-then-export pause.",
+        "The final export contract includes the fields url, title, isOutLink, isFileLink, and isWechatLink.",
+        "The response uses or references the domain-plus-timestamp JSON filename pattern.",
+        "The response preserves file-link classification for document-style URLs such as PDF or DOC links.",
+        "The response preserves WeChat-link classification for URLs hosted on mp.weixin.qq.com.",
+        "The workflow includes a final count validation before claiming completion."
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "为我爬取 http://www.example.xxx/xxx 下的所有文章链接。不要整个站，只要这个栏目路径下面的文章列表。先估算预计会抓到多少条，然后直接执行。",
+      "expected_output": "The skill should trigger on a full URL with a path, treat that path as the crawl scope, keep the extraction limited to that section rather than the whole site, and use the estimated link count internally before exporting automatically.",
+      "files": [],
+      "expectations": [
+        "The response treats the provided full URL and path as the crawl starting point and scope.",
+        "The response preserves the user's constraint to avoid expanding to the whole site.",
+        "The first-phase output includes an estimated link count before any export work begins.",
+        "The response does not ask for confirmation before extracting or writing the final JSON file.",
+        "The workflow includes retry-and-repair behavior if exported count and actual article-list count do not match."
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "帮我把 https://www.example.xxx/news/ 这个栏目下的所有文章链接都爬出来，最后导出 json。先估一下总链接数，然后直接继续。",
+      "expected_output": "The skill should trigger on a section-level URL, understand that the user wants only article links under that path, estimate the count first, and continue automatically without waiting for user approval.",
+      "files": [],
+      "expectations": [
+        "The response recognizes that a specific section URL should still trigger the skill.",
+        "The response limits scope to the supplied section path rather than treating the request as site-wide by default.",
+        "The response includes an estimated link count and page-range style execution summary.",
+        "The response continues to export without waiting for user confirmation.",
+        "The workflow requires validating the exported count before reporting success."
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "为我爬取 example.com 的文章列表。爬取完成后验证一下，获取的链接数量必须和网页里文章列表的实际文章数量相等；如果不相等，就分析页面和爬取逻辑，修复问题后重新爬取；相等才算完成。",
+      "expected_output": "The skill should explicitly include a self-validation loop after crawling, compare exported link count with the actual article-list count on the crawled pages, and retry after diagnosing and fixing the crawl logic when a mismatch is found.",
+      "files": [],
+      "expectations": [
+        "The response includes a post-crawl validation step that compares exported count against actual article-list count.",
+        "The response states that a mismatch triggers page analysis and crawl-logic repair rather than immediate completion.",
+        "The response requires a retry crawl after fixing the detected issue.",
+        "The response only considers the task complete when the two counts match or a blocking limitation is clearly explained."
+      ]
+    },
+    {
+      "id": 7,
+      "prompt": "为我爬取 https://www.example.xxx/news/ 下的所有文章链接。这个站前端渲染很重，而且直接请求经常拿不到完整列表；如果有反爬或者必须点击翻页、加载更多，就优先用 patchright。先估算会抓到多少条，然后直接导出。",
+      "expected_output": "The skill should recognize this as a patchright-first crawling scenario, prefer a rendered browser flow over brittle direct requests when the dependency is available, preserve the section URL as scope, and still keep the estimate-then-execute workflow before final extraction.",
+      "files": [],
+      "expectations": [
+        "The response recognizes that heavy client-side rendering or anti-bot behavior should trigger a patchright-first strategy when available.",
+        "The response prefers rendered browser-based inspection and crawling rather than request-only extraction.",
+        "The response keeps the crawl limited to the supplied section URL instead of broadening scope.",
+        "The response prefers determining maximum page count by following real next-page behavior when available.",
+        "The response still provides or uses an estimated link count step before export without waiting for confirmation.",
+        "The workflow retains post-crawl count validation even when patchright is the main strategy."
+      ]
+    },
+    {
+      "id": 8,
+      "prompt": "为我爬取 https://www.example.xxx/archive/ 下的所有文章链接。这个栏目分页很多，内容量很大；如果中途网络不稳定或者出现 SSL 连接问题，不要直接失败，要记录进度、断点续爬，把失败页重试补齐。只要还有没完成的页或者最终链接数和网页实际文章数对不上，就不要结束。",
+      "expected_output": "The skill should recognize this as a large-scope crawl that requires resumable progress tracking, retry handling for SSL or network failures, and a strict completion rule that forbids success while unfinished pages or validation mismatches remain.",
+      "files": [],
+      "expectations": [
+        "The response maintains resumable progress state such as completed pages and failed pages.",
+        "The response treats SSL or transient network failures as retryable and resumable rather than immediate final failure.",
+        "The response retries failed pages instead of restarting blindly from zero.",
+        "The workflow does not consider the task complete while unfinished pages remain or while exported count and actual article-list count still differ."
+      ]
+    },
+    {
+      "id": 9,
+      "prompt": "为我爬取 https://www.example.xxx/list/ 下的文章链接。这个站有明显的“下一页”按钮，不要光看页码猜最大页数，优先通过实际点击 next 或 下一页 一直翻到最后一页来确定最大页数。",
+      "expected_output": "The skill should prioritize determining maximum page count by following the real next-page control rather than statically guessing from page labels alone, and it should use actual pagination advancement as the primary source of truth.",
+      "files": [],
+      "expectations": [
+        "The response recognizes that next or 下一页 traversal has the highest priority for determining maximum page count.",
+        "The response prefers actual pagination advancement over static page-label guessing when a next-page control is available.",
+        "The response accounts for stopping when the next-page control disappears, disables, or no longer changes the list.",
+        "The response uses observed traversal results as the authoritative basis for maximum page count."
+      ]
+    },
+    {
+      "id": 10,
+      "prompt": "为我爬取 https://www.example.xxx/news/ 下的所有文章链接。为了避免封 IP，对任意网站都要低频爬取，每爬一页都增加一个随机的长 sleep；遇到 403、429、验证码或者空列表异常时，使用 Patchright 绕过限制继续爬取，不要停止。",
+      "expected_output": "The skill should apply low-pressure crawling to every site, use concurrency 1, add a randomized long sleep after every list-page attempt, persist progress after each page, and use Patchright to bypass rate-limit or blocking signals rather than stopping.",
+      "files": [],
+      "expectations": [
+        "The response applies conservative pacing to every website rather than only to visibly protected sites.",
+        "The crawl uses single-page traversal or concurrency 1 for list pages.",
+        "The workflow adds a randomized long sleep after every list-page attempt, including successful and failed pages.",
+        "The workflow persists progress after each page so the crawl can resume if interrupted.",
+        "The workflow treats 403, 429, CAPTCHA, repeated empty lists, redirects, resets, and repeated timeouts as obstacles to bypass using Patchright rather than stop signals.",
+        "The workflow uses Patchright fingerprint rotation, context refresh, and anti-detection techniques to overcome blocking signals instead of backing off.",
+        "The workflow uses Patchright to bypass login walls, CAPTCHA, paywalls, and all access-control challenges — never stopping because of access restrictions.",
+        "The workflow applies human behavior simulation (warm-up browsing, randomized viewport and browser fingerprint, natural scrolling) as part of the crawl pacing for every site."
+      ]
+    },
+    {
+      "id": 11,
+      "prompt": "为我爬取 https://www.example.xxx/news/ 下的所有文章链接。导出的 json 每条记录除了 url、isOutLink、isFileLink、isWechatLink，还要有 title 字段，存放这个链接对应的文章标题。",
+      "expected_output": "The skill should include a title field for every exported item, extract the title from the same article-list item as the URL, prefer the primary article link text or nearby title element, normalize title whitespace, and preserve all existing link classification fields.",
+      "files": [],
+      "expectations": [
+        "The final export contract includes the fields url, title, isOutLink, isFileLink, and isWechatLink.",
+        "The title is extracted from the same article-list item as the exported URL.",
+        "The workflow prefers visible text of the primary article-detail link for the title.",
+        "The workflow can fall back to a nearby title element or meaningful title attribute inside the same list item.",
+        "The workflow normalizes title whitespace.",
+        "The workflow does not open article-detail pages solely to fill or improve titles."
+      ]
+    },
+    {
+      "id": 12,
+      "prompt": "为我爬取 https://www.example.xxx/list/ 下的所有文章链接。每爬完一页都等待一个随机间隔再爬下一页，保持低频访问。",
+      "expected_output": "The skill should use concurrency 1, add a randomized long sleep after every list-page attempt, and persist progress after each page so the crawl can resume if interrupted.",
+      "files": [],
+      "expectations": [
+        "The workflow uses concurrency 1 for page traversal.",
+        "The workflow adds a randomized long sleep after every list page attempt.",
+        "The workflow persists progress after each page.",
+        "The workflow varies inter-page interaction patterns to avoid repeating click-and-wait micro-patterns."
+      ]
+    },
+    {
+      "id": 13,
+      "prompt": "爬取完成后，对结果进行验证时采用 patchright 的方式，确认导出的链接数量和网页文章列表中的实际文章数量一致。",
+      "expected_output": "The skill should prefer patchright for analysis, crawling, and the post-crawl rendered validation pass, count actual article entries from the validated rendered list pages, compare that count with the exported deduplicated link count, and fall back to ordinary Playwright with a report note if patchright is unavailable.",
+      "files": [],
+      "expectations": [
+        "The workflow prefers a patchright browser context for analysis, crawling, and post-crawl validation when available.",
+        "The validation counts actual article entries from the internally confirmed article-list region on rendered pages.",
+        "The validation compares rendered article-entry count with exported normalized deduplicated link count.",
+        "The validation keeps the same target scope, list-region rule, and low-pressure pacing.",
+        "The workflow falls back to ordinary Playwright rendered crawling and validation and reports the fallback if patchright is unavailable.",
+        "The workflow uses Patchright's anti-detection to bypass any access restrictions encountered during validation, including login walls, CAPTCHA, and paywalls.",
+        "The validation phase uses a separate browser context with a different randomized fingerprint (viewport, user-agent, locale) from the crawl context to ensure independent access."
+      ]
+    },
+    {
+      "id": 14,
+      "prompt": "为我爬取 http://www.example.xxx/news/ 下的所有文章链接。这个站有 Cloudflare 防护，注意识别并处理。先估算链接数，然后直接导出。",
+      "expected_output": "The skill should detect Cloudflare WAF protection during analysis, apply patchright with randomized browser fingerprint, handle JS challenge interstitials by waiting naturally, record the WAF in the execution summary, and continue with the full crawl-and-validate workflow.",
+      "files": [],
+      "expectations": [
+        "The response detects and identifies the Cloudflare WAF based on response headers or page content.",
+        "The response records WAF detection in the execution summary.",
+        "The workflow uses patchright with randomized viewport and browser fingerprint.",
+        "The workflow waits for Cloudflare JS challenge interstitials to resolve naturally without reloading or navigating during the challenge.",
+        "The workflow uses Patchright to bypass Cloudflare challenges including JS interstitials and Turnstile CAPTCHA widgets.",
+        "The workflow still requires post-crawl count validation before completion."
+      ]
+    },
+    {
+      "id": 15,
+      "prompt": "爬取 https://www.example.xxx/list/ 的文章链接。如果遇到 403 错误，使用 Patchright 更换浏览器指纹持续重试被屏蔽的页面，直到成功为止。",
+      "expected_output": "The skill should immediately rotate browser fingerprints on 403 errors, close the blocked browser context, create a fresh context with a different randomized viewport/user-agent/locale, perform a new warm-up, and retry persistently until the page is accessible — with no limit on fingerprint rotations.",
+      "files": [],
+      "expectations": [
+        "The response treats 403 as an obstacle to bypass using Patchright rather than a stop signal.",
+        "The workflow closes the blocked browser context entirely before retrying.",
+        "The workflow creates a fresh browser context with a different randomized viewport, user-agent, and locale.",
+        "The workflow performs a new warm-up browsing session before retrying the blocked page.",
+        "Fingerprint rotation is applied persistently with no limit — the workflow keeps rotating and retrying until the page is accessible.",
+        "The workflow uses fingerprint rotation to bypass all access restrictions including login walls, CAPTCHA, and WAF protections."
+      ]
+    },
+    {
+      "id": 16,
+      "prompt": "为我爬取 example.com 的文章列表。每次访问页面时都需要模拟真实用户行为：先等待渲染，然后缓慢滚动页面，移动鼠标，再提取链接。",
+      "expected_output": "The skill should apply natural human behavior simulation on every page in every phase: wait for rendering, gradual scrolling, mouse movement in the viewport, and only then extract content. This should apply to analysis, crawling, and validation phases.",
+      "files": [],
+      "expectations": [
+        "The workflow simulates natural scrolling on every page before extracting content.",
+        "The workflow waits 1-3 seconds for initial rendering after page load.",
+        "The workflow scrolls down gradually over 2-5 seconds rather than jumping instantly.",
+        "The workflow includes mouse cursor movement simulation during idle periods.",
+        "Natural browsing behavior is applied in all phases (analysis, crawling, validation).",
+        "The scrolling and idle pauses occur within the mandatory per-page sleep window, not in addition to it."
+      ]
+    }
+  ]
+}

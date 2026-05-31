@@ -1,0 +1,7 @@
+interface:
+  display_name: "Get Category"
+  short_description: "识别栏目链接并匹配 categoryIds"
+  default_prompt: "Use $get-category to request appKey first, then crawl a website URL and save matched categoryIds as JSON."
+
+policy:
+  allow_implicit_invocation: true

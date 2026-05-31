@@ -1,0 +1,8 @@
+.claude/
+.codex-tmp/
+**/.claude/
+**/.tmp/
+**/__pycache__/
+*.pyc
+
+category-to-list_cers.org.cn_*/

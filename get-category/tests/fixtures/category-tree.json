@@ -1,0 +1,27 @@
+{
+  "errno": 0,
+  "errmsg": "成功",
+  "data": [
+    {
+      "id": 100,
+      "categoryName": "政策法规",
+      "list": [
+        {
+          "id": 101,
+          "categoryName": "法律法规",
+          "list": null
+        },
+        {
+          "id": 102,
+          "categoryName": "行业标准",
+          "list": []
+        }
+      ]
+    },
+    {
+      "id": 103,
+      "categoryName": "通知公告",
+      "list": null
+    }
+  ]
+}

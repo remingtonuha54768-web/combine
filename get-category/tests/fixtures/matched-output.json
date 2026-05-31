@@ -1,0 +1,17 @@
+[
+  {
+    "category": "通知公告",
+    "categoryIds": 103,
+    "url": "http://www.hbsla.net/news1/news.php?class2=79"
+  },
+  {
+    "category": "法律法规",
+    "categoryIds": 101,
+    "url": "http://www.hbsla.net/news/news.php?class2=13"
+  },
+  {
+    "category": "行业标准",
+    "categoryIds": 102,
+    "url": "http://www.hbsla.net/news/news.php?class2=14"
+  }
+]
