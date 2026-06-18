@@ -31,16 +31,36 @@ If `appKey` is missing, ask for it first and do not start crawling.
 ```
 
 4. If `matched_categories.json` is empty, stop and report that there are no matched categories to crawl.
-5. Process matched categories sequentially in file order by default.
-6. For each matched category, dispatch a subagent to run `web-list-scraper` for that category only.
-7. Pass the category `url` as the crawl target and the numeric `categoryIds` as upstream category context.
-8. Require the subagent to ensure every exported article item includes the same `categoryIds` value.
-9. Require the subagent to write its category crawl to a separate output file so categories from the same domain cannot overwrite each other.
-10. Collect each subagent result and write `pipeline_manifest.json` after the batch completes.
+5. **Pre-check phase — main agent determines page counts.** For each matched category URL:
+   - Use Playwright to open the page and read `共 N 页` from the pagination area.
+   - If pagination is load-more style or the total page count is not directly available, determine the maximum page count by clicking through or counting loaded items.
+   - Record the total page count and articles-per-page count for each category.
+   - This step is **mandatory**. Do not delegate page-count detection to subagents, as LLM-powered subagents may misread window-style pagination (e.g. only seeing pages 1-7 when 25 pages exist).
+6. Process matched categories sequentially in file order by default.
+7. For each matched category, dispatch a subagent to run `web-list-scraper` for that category only.
+   - Pass the pre-determined `totalPages` and `perPage` in the subagent input.
+   - Instruct the subagent to iterate `for page in 1..totalPages` by constructing page URLs directly, rather than detecting pagination controls on its own.
+8. Pass the category `url` as the crawl target and the numeric `categoryIds` as upstream category context.
+9. Require the subagent to ensure every exported article item includes the same `categoryIds` value.
+10. Require the subagent to write its category crawl to a separate output file so categories from the same domain cannot overwrite each other.
+11. Collect each subagent result and write `pipeline_manifest.json` after the batch completes.
 
 ## Subagent dispatch
 
 Dispatch exactly one subagent per matched category. By default, wait for one subagent to finish before dispatching the next one.
+
+### Pre-check (main agent, mandatory)
+
+Before dispatching any subagent, the main agent must determine the page count for each category URL. This is non-negotiable — delegating page-count detection to subagents introduces LM behavior variability (e.g. misreading window-style pagination that shows 1-7 when the actual total is 25).
+
+Use Playwright to:
+1. Navigate to the category URL.
+2. Extract the total page count from the `共 N 页` text in the pagination area.
+3. Record `totalPages` and `perPage` (articles per page, typically 15 or 20).
+4. For load-more pagination: keep triggering "load more" until no new items appear, then compute `totalPages = ceil(totalItems / perPage)`.
+5. Store these values for each category entry.
+
+### Dispatch
 
 Subagent input must use this shape:
 
@@ -49,6 +69,8 @@ Subagent input must use this shape:
   "category": "通知公告",
   "categoryIds": 103,
   "url": "https://example.com/news",
+  "totalPages": 25,
+  "perPage": 15,
   "outputDir": "category-to-list_example.com_20260531_173000",
   "allowedCommandStyle": "Use Python or Bash commands that are already allowed in the current subagent environment. Do not use PowerShell."
 }
@@ -58,10 +80,11 @@ The subagent prompt must include:
 
 - Use `web-list-scraper`.
 - Crawl only the provided `url`.
+- **Use the provided `totalPages` and `perPage` to determine the page range.** Construct page URLs directly as `url?page={N}&per-page={perPage}` for N in `1..totalPages`. Do NOT attempt to detect pagination controls or count page links from the DOM — this value was already determined by the main agent.
 - Treat the provided numeric `categoryIds` as upstream category context.
 - Add that same `categoryIds` value to every exported article item.
 - Write the article-list JSON under `outputDir`.
-- Preserve `web-list-scraper` analysis, crawl, pacing, and validation rules.
+- Preserve `web-list-scraper` crawl pacing, browser warm-up, natural scrolling, and validation rules.
 - Follow the provided `allowedCommandStyle`. The main agent must state the known allowed command style before dispatch.
 - Do not use PowerShell by default. Prefer allowed Python commands, Bash commands, existing scraper scripts, and existing browser/crawl tools only when they match `allowedCommandStyle`.
 - If PowerShell is denied, do not retry with PowerShell. Use a natural equivalent only when it performs the same task and is allowed in the current subagent environment.
